@@ -1,0 +1,199 @@
+import oauth2 as oauth
+
+import urlparse
+
+
+class GeeklistProblem(Exception):
+    def __init__(self):
+        super(GeeklistProblem, self).__init__()
+
+    @classmethod
+    def create(cls, url, statuscode, response):
+        hp = cls()
+        hp.url = url
+        hp.statuscode = statuscode
+        hp.response = response
+        return hp
+
+    def __unicode__(self):
+        return u"Geeklist request to %s failed with status %s, response %s" % \
+               (self.url, self.statuscode, self.response)
+
+    def __str__(self):
+        return str(unicode(self))
+
+
+class BaseGeeklistApi(object):
+    """A Geeklist API client."""
+
+    BASE_URL = 'http://api.geekli.st/v1'
+
+    def __init__(self, consumer_info, token):
+        """
+            consumer_info : Dictionary like this one:
+                {
+                    'key':YOUR_APP_KEY,
+                    'secret':YOUR_APP_SECRET
+                }
+            token : If None you must get an request_token and an access token
+                    before accessing other API methods.
+        """
+        self.consumer = oauth.Consumer(
+            key=consumer_info['key'],
+            secret=consumer_info['secret']
+        )
+        self.client = oauth.Client(self.consumer, token=token)
+
+    def _request(self, url, method='GET', body=None):
+        (resp, content) = self.client.request(url,
+            method,
+            body=body if body else {})
+        if resp.status == 200:
+            return content
+
+        statuscode = resp.status
+        raise GeeklistProblem.create(
+            url=url,
+            statuscode=statuscode,
+            response=content)
+
+
+class GeekListOauthApi(BaseGeeklistApi):
+    APP_TYPES = ['web', 'oob']
+
+    def __init__(self, consumer_info):
+        super(GeekListOauthApi, self).__init__(
+            consumer_info=consumer_info,
+            token=None)
+
+    def request_token(self, type='web'):
+        if type not in GeekListOauthApi.APP_TYPES:
+            raise ValueError('type must in %s' % GeekListOauthApi.APP_TYPES)
+
+        request_token_url = '%s/oauth/request_token' % BaseGeeklistApi.BASE_URL
+
+        if type == 'oob':
+            content = self._request(
+                url=request_token_url,
+                body={'oauth_callback': 'oob'})
+        else:
+            content = self._request(url=request_token_url)
+
+        request_token = dict(urlparse.parse_qsl(content))
+        return request_token
+
+    def access_token(self, request_token, verifier):
+        token = oauth.Token(request_token['oauth_token'],
+            request_token['oauth_token_secret'])
+        token.set_verifier(verifier)
+        access_token_url = '%s/oauth/access_token' % BaseGeeklistApi.BASE_URL
+
+        content = self._request(url=access_token_url)
+        access_token = dict(urlparse.parse_qsl(content))
+        return access_token
+
+
+class GeekListUserApi(BaseGeeklistApi):
+    def __init__(self, consumer_info, token):
+        if not token:
+            raise ValueError("A valid token must use to access the geeklist user api")
+        super(GeekListUserApi, self).__init__(
+            consumer_info=consumer_info,
+            token=token)
+
+    def _build_list_url(self, suffix, username, page, count):
+        if username:
+            url = '%s/users/%s' % (BaseGeeklistApi.BASE_URL, username)
+        else:
+            url = '%s/user' % BaseGeeklistApi.BASE_URL
+
+        url = '%s/%s' % (url, suffix)
+
+        if page and count:
+            url += '?page=%s&count=%s' % (page, count)
+        elif page:
+            url += '?page=%s' % page
+        elif count:
+            url += '?count=%s' % count
+
+        return url
+
+    def user_info(self, username, page=1, count=10):
+        url = self._build_list_url('', username=username, page=page, count=10)
+        return self._request(url=url)
+
+    def cards(self, username, page=1, count=10):
+        url = self._build_list_url('cards', username=username, page=page, count=count)
+        return self._request(url=url)
+
+    def card(self, id):
+        url = '%s/cards/%s' % (BaseGeeklistApi.BASE_URL, id)
+        return self._request(url=url)
+
+    def create_card(self, headline):
+        url = '%s/cards' % BaseGeeklistApi.BASE_URL
+        return self._request(url=url, method='POST', body={'headline': headline})
+
+    def micros(self, username, page=1, count=10):
+        url = self._build_list_url('micros', username=username, page=page, count=count)
+        return self._request(url=url)
+
+    def card(self, id):
+        url = '%s/micros/%s' % (BaseGeeklistApi.BASE_URL, id)
+        return self._request(url=url)
+
+    def create_micro(self, status):
+        url = '%s/micros' % BaseGeeklistApi.BASE_URL
+        return self._request(url=url, method='POST', body={'status': status})
+
+    def reply_to_micro(self, micro_id, status):
+        url = '%s/micros' % BaseGeeklistApi.BASE_URL
+        return self._request(url=url, method='POST', body={
+            'status': status,
+            'type': 'micro',
+            'in-reply-to': micro_id
+        })
+
+    def reply_to_card(self, card_id, status):
+        url = '%s/micros' % BaseGeeklistApi.BASE_URL
+        return self._request(url=url, method='POST', body={
+            'status': status,
+            'type': 'card',
+            'in-reply-to': card_id
+        })
+
+    def list_followers(self, username, page=1, count=10):
+        url = self._build_list_url('followers', username=username, page=page, count=count)
+        return self._request(url=url)
+
+    def list_following(self, username, page=1, count=10):
+        url = self._build_list_url('following', username=username, page=page, count=count)
+        return self._request(url=url)
+
+    def follow(self, user_id):
+        url = '%s/follow' % BaseGeeklistApi.BASE_URL
+        return self._request(url=url, method='POST', body={
+            'user': user_id,
+            'action': 'follow'
+        })
+
+    def unfollow(self, user_id):
+        url = '%s/follow' % BaseGeeklistApi.BASE_URL
+        return self._request(url=url, method='POST', body={
+            'user': user_id
+        })
+
+    def list_user_activities(self, username, type_filter, page=1, count=10):
+        url = self._build_list_url('activity', username=username, page=page, count=count)
+        url += '&filter=%s' % type_filter
+        return self._request(url=url)
+
+    def list_all_activity(self, type_filter, page=1, count=10):
+        url = '%s/activity?' % BaseGeeklistApi.BASE_URL
+        if page and count:
+            url += 'page=%s&count=%s' % (page, count)
+        elif page:
+            url += 'page=%s' % page
+        elif count:
+            url += 'count=%s' % count
+        raise NotImplementedError()

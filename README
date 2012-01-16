@@ -1,0 +1,22 @@
+===============================================================================
+Python Client Library for the geekli.st API
+===============================================================================
+
+This repository contains the Python Client Library for geekli.st. Please consult
+http://geekli.st for more information regarding GeekList. Complete API
+documentation is available at http://hackers.geekli.st
+
+REQUIREMENTS
+
+	see requirements.txt
+
+INSTALLATION
+
+Latest version
+	1 - Clone repository : https://github.com/juliengrenier/python-geeklist
+	2 - Run python setup.py install
+
+EXAMPLES
+	TBD
+
+This file was modified by PyCharm 2.0.1 for binding GitHub repository
