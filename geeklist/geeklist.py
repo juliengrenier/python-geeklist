@@ -15,7 +15,7 @@ class GeeklistProblem(Exception):
         hp.response = response
         return hp
 
-    def __unicode__(self):
+    def __unicode__(self, *args, **kwargs):
         return u"Geeklist request to %s failed with status %s, response %s" % \
                (self.url, self.statuscode, self.response)
 
@@ -27,6 +27,7 @@ class BaseGeeklistApi(object):
     """A Geeklist API client."""
 
     BASE_URL = 'http://api.geekli.st/v1'
+    FILTER_TYPES = ['card', 'micro', 'follows', 'highfives']
 
     def __init__(self, consumer_info, token):
         """
@@ -67,6 +68,10 @@ class GeekListOauthApi(BaseGeeklistApi):
             token=None)
 
     def request_token(self, type='web'):
+        """
+            Return a dictionary containing the request token key and request
+            token secret
+        """
         if type not in GeekListOauthApi.APP_TYPES:
             raise ValueError('type must in %s' % GeekListOauthApi.APP_TYPES)
 
@@ -83,6 +88,15 @@ class GeekListOauthApi(BaseGeeklistApi):
         return request_token
 
     def access_token(self, request_token, verifier):
+        """
+            request_token: a dictionary containing the request token key and
+            the request token secret :
+                {
+                    'oauth_token': REQ_TOKEN_KEY,
+                    'oauth_token_secret' : REQ_TOKEN_SECRET
+                }
+            verifier : The verifier return from Geeklist.
+        """
         token = oauth.Token(request_token['oauth_token'],
             request_token['oauth_token_secret'])
         token.set_verifier(verifier)
@@ -119,7 +133,7 @@ class GeekListUserApi(BaseGeeklistApi):
         return url
 
     def user_info(self, username, page=1, count=10):
-        url = self._build_list_url('', username=username, page=page, count=10)
+        url = self._build_list_url('', username=username, page=page, count=count)
         return self._request(url=url)
 
     def cards(self, username, page=1, count=10):
@@ -183,12 +197,21 @@ class GeekListUserApi(BaseGeeklistApi):
             'user': user_id
         })
 
-    def list_user_activities(self, username, type_filter, page=1, count=10):
+    def list_user_activities(self, username, filter_type, page=1, count=10):
+
+        if filter_type and filter_type not in BaseGeeklistApi.FILTER_TYPES:
+            raise ValueError("Wrong filter")
+
         url = self._build_list_url('activity', username=username, page=page, count=count)
-        url += '&filter=%s' % type_filter
+
+        if filter_type:
+            url += '&filter=%s' % filter_type
         return self._request(url=url)
 
-    def list_all_activity(self, type_filter, page=1, count=10):
+    def list_all_activity(self, filter_type, page=1, count=10):
+        if filter_type and filter_type not in BaseGeeklistApi.FILTER_TYPES:
+            raise ValueError("Wrong filter")
+
         url = '%s/activity?' % BaseGeeklistApi.BASE_URL
         if page and count:
             url += 'page=%s&count=%s' % (page, count)
@@ -196,4 +219,21 @@ class GeekListUserApi(BaseGeeklistApi):
             url += 'page=%s' % page
         elif count:
             url += 'count=%s' % count
-        raise NotImplementedError()
+
+        if filter_type:
+            url += '&filter=%s' % filter_type
+
+        return self._request(url)
+
+    def _high_five(self, item_type, item_id):
+        url = '%s/h5' % BaseGeeklistApi.BASE_URL
+        return self._request(url, method='POST', body={
+            'type': item_type,
+            'gfk': item_id
+        })
+
+    def high_five_card(self, card_id):
+        return self._high_five('card', card_id)
+
+    def high_five_micro(self, micro_id):
+        return self._high_five('micro', micro_id)
