@@ -27,7 +27,7 @@ class BaseGeeklistApi(object):
     """A Geeklist API client."""
 
     BASE_URL = 'http://api.geekli.st/v1'
-    FILTER_TYPES = ['card', 'micro', 'follows', 'highfives']
+    FILTER_TYPES = ['cards', 'micros', 'follows', 'highfives']
 
     def __init__(self, consumer_info, token):
         """
