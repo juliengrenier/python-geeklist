@@ -242,7 +242,7 @@ class GeekListUserApi(BaseGeeklistApi):
         })
 
     def high_five_card(self, card_id):
-        return self._high_five('cards', card_id)
+        return self._high_five('card', card_id)
 
     def high_five_micro(self, micro_id):
         return self._high_five('micro', micro_id)
