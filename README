@@ -17,6 +17,8 @@ Latest version
 	2 - Run python setup.py install
 
 EXAMPLES
-	TBD
+	To run the example :
 
-This file was modified by PyCharm 2.0.1 for binding GitHub repository
+	1 - Create a file call access.py
+	2 - Insert the following code consumer_info = {'key':YOUR_KEY, 'secret':YOUR_SECRET} into the file
+	3 - Run python ./geeklist_examples.py
