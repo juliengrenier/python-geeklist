@@ -158,7 +158,7 @@ class GeekListUserApi(BaseGeeklistApi):
         return self._request(url=url)
 
     def card(self, id):
-        url = '%s/micros/%s' % (BaseGeeklistApi.BASE_URL, id)
+        url = '%s/cards/%s' % (BaseGeeklistApi.BASE_URL, id)
         return self._request(url=url)
 
     def create_micro(self, status):
