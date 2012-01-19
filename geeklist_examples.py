@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from geeklist.geeklist import BaseGeeklistApi, GeekListOauthApi, GeekListUserApi
+from geeklist.api import BaseGeeklistApi, GeekListOauthApi, GeekListUserApi
 
 from access import consumer_info#, access_token
 
