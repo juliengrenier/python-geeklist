@@ -206,7 +206,7 @@ class GeekListUserApi(BaseGeeklistApi):
             'user': user_id
         })
 
-    def list_user_activities(self, username, filter_type, page=1, count=10):
+    def list_user_activities(self, username=None, filter_type=None, page=1, count=10):
 
         if filter_type and filter_type not in BaseGeeklistApi.FILTER_TYPES:
             raise ValueError("Wrong filter")
@@ -235,7 +235,7 @@ class GeekListUserApi(BaseGeeklistApi):
         return self._request(url)
 
     def _high_five(self, item_type, item_id):
-        url = '%s/h5' % BaseGeeklistApi.BASE_URL
+        url = '%s/highfive' % BaseGeeklistApi.BASE_URL
         return self._request(url, method='POST', body={
             'type': item_type,
             'gfk': item_id
