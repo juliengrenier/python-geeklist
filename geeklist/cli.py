@@ -2,7 +2,7 @@
 import cmd
 import json
 
-from api import BaseGeeklistApi, GeekListUserApi, GeekListOauthApi
+from api import BaseGeeklistApi, GeekListUserApi, GeekListOauthApi, GeeklistProblem
 
 from access import consumer_info, access_token
 
@@ -12,6 +12,13 @@ api = GeekListUserApi(consumer_info=consumer_info, token=access_token)
 
 class GeekCli(cmd.Cmd):
     prompt = 'geek>'
+
+    def onecmd(self, s):
+        try:
+            return cmd.Cmd.onecmd(self, s)
+        except GeeklistProblem as problem:
+            print problem.response
+
 
     def do_whoami(self, line):
         """
@@ -265,6 +272,8 @@ class GeekCli(cmd.Cmd):
     def do_quit(self, *args):
         self.skip_print = True
         return True
+
+    do_exit=do_quit
 
     def do_EOF(self, line):
         """Exit"""
