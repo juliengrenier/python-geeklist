@@ -27,7 +27,7 @@ class BaseGeeklistApi(object):
     """A Geeklist API client."""
 
     BASE_URL = 'http://api.geekli.st/v1'
-    FILTER_TYPES = ['cards', 'micros', 'follows', 'highfives']
+    FILTER_TYPES = ['card', 'micro', 'follow', 'highfive']
 
     def __init__(self, consumer_info, token):
         """
@@ -214,7 +214,7 @@ class GeekListUserApi(BaseGeeklistApi):
         url = self._build_list_url('activity', username=username, page=page, count=count)
 
         if filter_type:
-            url += '&filter=%s' % filter_type
+            url += '&card=%s' % filter_type
         return self._request(url=url)
 
     def list_all_activity(self, filter_type, page=1, count=10):
@@ -230,7 +230,7 @@ class GeekListUserApi(BaseGeeklistApi):
             url += 'count=%s' % count
 
         if filter_type:
-            url += '&filter=%s' % filter_type
+            url += '&type=%s' % filter_type
 
         return self._request(url)
 
