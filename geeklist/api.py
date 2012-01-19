@@ -55,7 +55,11 @@ class BaseGeeklistApi(object):
         (resp, content) = self.client.request(url,
             method, body=body_string)
         if resp.status == 200:
-            return json.loads(content)
+            json_response = json.loads(content)
+            if json_response.get('status',None) == 'ok' and 'data' in json_response:
+                return json_response['data']
+            else:
+                return json_response
 
         statuscode = resp.status
         raise GeeklistProblem.create(
@@ -157,8 +161,8 @@ class GeekListUserApi(BaseGeeklistApi):
         url = self._build_list_url('micros', username=username, page=page, count=count)
         return self._request(url=url)
 
-    def card(self, id):
-        url = '%s/cards/%s' % (BaseGeeklistApi.BASE_URL, id)
+    def micro(self, id):
+        url = '%s/micros/%s' % (BaseGeeklistApi.BASE_URL, id)
         return self._request(url=url)
 
     def create_micro(self, status):
