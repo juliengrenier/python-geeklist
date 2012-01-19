@@ -1,5 +1,5 @@
 import oauth2 as oauth
-
+import json
 import urlparse
 
 
@@ -43,14 +43,19 @@ class BaseGeeklistApi(object):
             key=consumer_info['key'],
             secret=consumer_info['secret']
         )
-        self.client = oauth.Client(self.consumer, token=token)
+        if token:
+            oauth_token = oauth.Token(token['key'], token['secret'])
+        else:
+            oauth_token = None
+        self.client = oauth.Client(self.consumer, token=oauth_token)
 
-    def _request(self, url, method='GET', body=None):
+    def _request(self, url, method='GET', body={}):
+        body_string = '&'.join(['%s=%s' % (key,body[key]) for key in body])
+
         (resp, content) = self.client.request(url,
-            method,
-            body=body if body else {})
+            method, body=body_string)
         if resp.status == 200:
-            return content
+            return json.loads(content)
 
         statuscode = resp.status
         raise GeeklistProblem.create(
@@ -132,11 +137,11 @@ class GeekListUserApi(BaseGeeklistApi):
 
         return url
 
-    def user_info(self, username, page=1, count=10):
+    def user_info(self, username=None, page=1, count=10):
         url = self._build_list_url('', username=username, page=page, count=count)
         return self._request(url=url)
 
-    def cards(self, username, page=1, count=10):
+    def cards(self, username=None, page=1, count=10):
         url = self._build_list_url('cards', username=username, page=page, count=count)
         return self._request(url=url)
 
@@ -148,7 +153,7 @@ class GeekListUserApi(BaseGeeklistApi):
         url = '%s/cards' % BaseGeeklistApi.BASE_URL
         return self._request(url=url, method='POST', body={'headline': headline})
 
-    def micros(self, username, page=1, count=10):
+    def micros(self, username=None, page=1, count=10):
         url = self._build_list_url('micros', username=username, page=page, count=count)
         return self._request(url=url)
 
@@ -233,7 +238,7 @@ class GeekListUserApi(BaseGeeklistApi):
         })
 
     def high_five_card(self, card_id):
-        return self._high_five('card', card_id)
+        return self._high_five('cards', card_id)
 
     def high_five_micro(self, micro_id):
         return self._high_five('micro', micro_id)
