@@ -49,17 +49,20 @@ class BaseGeeklistApi(object):
             oauth_token = None
         self.client = oauth.Client(self.consumer, token=oauth_token)
 
-    def _request(self, url, method='GET', body={}):
+    def _request(self, url, method='GET', body={}, decode=True):
         body_string = '&'.join(['%s=%s' % (key,body[key]) for key in body])
 
         (resp, content) = self.client.request(url,
             method, body=body_string)
         if resp.status == 200:
-            json_response = json.loads(content)
-            if json_response.get('status',None) == 'ok' and 'data' in json_response:
-                return json_response['data']
+            if decode:
+                json_response = json.loads(content)
+                if json_response.get('status',None) == 'ok' and 'data' in json_response:
+                    return json_response['data']
+                else:
+                    return json_response
             else:
-                return json_response
+                return content
 
         statuscode = resp.status
         raise GeeklistProblem.create(
@@ -87,11 +90,9 @@ class GeekListOauthApi(BaseGeeklistApi):
         request_token_url = '%s/oauth/request_token' % BaseGeeklistApi.BASE_URL
 
         if type == 'oob':
-            content = self._request(
-                url=request_token_url,
-                body={'oauth_callback': 'oob'})
+            content = self._request(url='%s?oauth_callback=oob' % request_token_url, decode=False)
         else:
-            content = self._request(url=request_token_url)
+            content = self._request(url=request_token_url, decode=False)
 
         request_token = dict(urlparse.parse_qsl(content))
         return request_token
@@ -109,9 +110,10 @@ class GeekListOauthApi(BaseGeeklistApi):
         token = oauth.Token(request_token['oauth_token'],
             request_token['oauth_token_secret'])
         token.set_verifier(verifier)
+        self.client = oauth.Client(self.consumer, token=token)
         access_token_url = '%s/oauth/access_token' % BaseGeeklistApi.BASE_URL
 
-        content = self._request(url=access_token_url)
+        content = self._request(url=access_token_url, decode=False)
         access_token = dict(urlparse.parse_qsl(content))
         return access_token
 
