@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from geeklist.api import BaseGeeklistApi, GeekListOauthApi, GeekListUserApi
 
-from access import consumer_info #consumer_info is { 'key': YOUR_KEY, 'secret': secret}
+from access import consumer_info #please access.py which contains consumer_info = { 'key': YOUR_KEY, 'secret': secret}
 
 BaseGeeklistApi.BASE_URL ='http://sandbox-api.geekli.st/v1'
 oauth_api = GeekListOauthApi(consumer_info=consumer_info)
