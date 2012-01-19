@@ -16,6 +16,11 @@ Latest version
 	1 - Clone repository : https://github.com/juliengrenier/python-geeklist
 	2 - Run python setup.py install
 
+GEEKLIST-CLI :
+	1 - Run python geeklist/cli.py
+	2 - Enter verifier in the prompt
+	3 - type help to see the available commands
+
 EXAMPLES
 	To run the example :
 
