@@ -4,21 +4,16 @@ import json
 
 from api import BaseGeeklistApi, GeekListUserApi, GeekListOauthApi, GeeklistProblem
 
-from access import consumer_info, access_token
-
-BaseGeeklistApi.BASE_URL = 'http://sandbox-api.geekli.st/v1'
-api = GeekListUserApi(consumer_info=consumer_info, token=access_token)
-
+try:
+    from access import consumer_info
+except:
+    consumer_info = {
+        'key':'YOUR_CONSUMER_KEY',
+        'secret': 'YOUR_CONSUMER_SECRET'
+    }
 
 class GeekCli(cmd.Cmd):
     prompt = 'geek>'
-
-    def onecmd(self, s):
-        try:
-            return cmd.Cmd.onecmd(self, s)
-        except GeeklistProblem as problem:
-            print problem.response
-
 
     def do_whoami(self, line):
         """
@@ -26,7 +21,7 @@ class GeekCli(cmd.Cmd):
             Print the user information about the current authenticate user
         """
         self.type = 'info'
-        self.result = api.user_info()
+        self.result = self.api.user_info()
 
     def do_whois(self, name):
         """
@@ -35,14 +30,14 @@ class GeekCli(cmd.Cmd):
         """
 
         self.type = 'info'
-        self.result = api.user_info(username=name)
+        self.result = self.api.user_info(username=name)
 
     def __list_user_activities(self, line):
         line_tokens = line.split()
         self.name = line_tokens[0] if line_tokens else None
         self.filter_type = line_tokens[1] if line_tokens and \
                                              len(line_tokens) > 1 else None
-        self.result = api.list_user_activities(
+        self.result = self.api.list_user_activities(
             username=self.name,
             filter_type=self.filter_type)
         self.count = len(self.result)
@@ -72,10 +67,10 @@ class GeekCli(cmd.Cmd):
         self.page = 1
 
         list_function = {
-            'cards': api.cards,
-            'micros': api.micros,
-            'followers': api.list_followers,
-            'following': api.list_following,
+            'cards': self.api.cards,
+            'micros': self.api.micros,
+            'followers': self.api.list_followers,
+            'following': self.api.list_following,
             }
 
         result = list_function[self.type](self.name)
@@ -84,10 +79,10 @@ class GeekCli(cmd.Cmd):
 
     def do_fetch(self,line):
         fetch_functions = {
-            'card':api.card,
-            'cards':api.card,
-            'micro':api.micro,
-            'micros':api.micro
+            'card':self.api.card,
+            'cards':self.api.card,
+            'micro':self.api.micro,
+            'micros':self.api.micro
         }
         line_tokens = line.split(' ')
         if len(line_tokens) == 2:
@@ -143,15 +138,31 @@ class GeekCli(cmd.Cmd):
             return
 
     def do_authenticate(self, line):
+        """
+            This will authenticate you
+        """
         self.oauth_api = GeekListOauthApi(consumer_info=consumer_info)
         request_token = self.oauth_api.request_token(type='oob')
         import webbrowser
         webbrowser.open('http://sandbox.geekli.st/oauth/authorize?oauth_token=%s' % request_token['oauth_token'])
-
         self.result = request_token
+        print 'Once you got the verifier code from geekli.st. Call verify [code]'
+
 
     def do_verify(self, line):
+        """
+            verify [code]
+            This will fetch an access code after you authenticated on geekli.st. You need to provide the verifier code shown on their website
+        """
         self.result = self.oauth_api.access_token(self.result, line)
+        access_token = {
+            'key':self.result['oauth_token'],
+            'secret':self.result['oauth_token_secret']
+        }
+        json_file = open(self.access_token_file_name, mode='w')
+        json.dump(access_token,json_file)
+        json_file.close()
+        self.api = GeekListUserApi(consumer_info=consumer_info, token=access_token)
 
 
     def complete_create(self, text, line, begidx, endidx):
@@ -166,9 +177,9 @@ class GeekCli(cmd.Cmd):
         if type not in ['card', 'micro']:
             print "valid creation object are card and micro"
         if type == 'card':
-            self.result = api.create_card(headline=text)
+            self.result = self.api.create_card(headline=text)
         elif type == 'micro':
-            self.result = api.create_micro(status=text)
+            self.result = self.api.create_micro(status=text)
         self.type = type
 
     def do_h5(self, line):
@@ -179,10 +190,10 @@ class GeekCli(cmd.Cmd):
             self.result = "only card and micro can be highfived"
 
         if type == 'card':
-            self.result = api.high_five_card(object_id)
+            self.result = self.api.high_five_card(object_id)
 
         elif type == 'micro':
-            self.result = api.high_five_micro(object_id)
+            self.result = self.api.high_five_micro(object_id)
 
     def do_reply(self, line):
         line_tokens = line.split(' ')
@@ -219,24 +230,24 @@ class GeekCli(cmd.Cmd):
         self.page += 1
 
         if self.type == 'activities':
-            self.result = api.list_user_activities(
+            self.result = self.api.list_user_activities(
                 username=self.name,
                 filter_type=self.filter_type,
                 page=self.page,
                 count=count)
             return
         elif self.type == 'stream':
-            self.result = api.list_all_activity(
+            self.result = self.api.list_all_activity(
                 filter_type=self.filter_type,
                 page=self.page,
                 count=count)
             return
 
         list_functions = {
-            'cards': api.cards,
-            'micros': api.micros,
-            'followers': api.list_followers,
-            'following': api.list_following,
+            'cards': self.api.cards,
+            'micros': self.api.micros,
+            'followers': self.api.list_followers,
+            'following': self.api.list_following,
             }
 
         function = list_functions[self.type]
@@ -249,16 +260,16 @@ class GeekCli(cmd.Cmd):
             Follow [name]
             Will now follow [name] on geeklist
         """
-        user = api.user_info(username=name)
-        self.result = api.follow(user_id=user['id'])
+        user = self.api.user_info(username=name)
+        self.result = self.api.follow(user_id=user['id'])
 
     def do_unfollow(self, name):
         """
             Unfollow [name]
             Will unfollow [name] on geeklist
         """
-        user = api.user_info(username=name)
-        self.result = api.unfollow(user_id=user['id'])
+        user = self.api.user_info(username=name)
+        self.result = self.api.unfollow(user_id=user['id'])
 
     def do_stream(self, line):
         line_tokens = line.split(' ')
@@ -266,7 +277,7 @@ class GeekCli(cmd.Cmd):
         self.type = 'stream'
         self.name = None
         self.page = 1
-        self.result = api.list_all_activity(filter_type=filter_type)
+        self.result = self.api.list_all_activity(filter_type=filter_type)
         self.count = len(self.result)
 
     def do_quit(self, *args):
@@ -288,7 +299,29 @@ class GeekCli(cmd.Cmd):
                 print json.dumps(self.result, indent=4)
         return cmd.Cmd.postcmd(self, stop, line)
 
+    def onecmd(self, s):
+        try:
+            return cmd.Cmd.onecmd(self, s)
+        except GeeklistProblem as problem:
+            print problem.response
+
+    def preloop(self):
+        if not api:
+            return self.do_authenticate('')
+        return cmd.Cmd.preloop(self)
+
 
 if __name__ == '__main__':
+    BaseGeeklistApi.BASE_URL = 'http://sandbox-api.geekli.st/v1'
+    access_token_file_name = 'access.token.json'
+    try:
+        access_token_file = open(access_token_file_name,mode='r')
+        access_token = json.load(access_token_file)
+        api = GeekListUserApi(consumer_info=consumer_info, token=access_token)
+    except :
+        api = None
+
     cli = GeekCli()
+    cli.api = api
+    cli.access_token_file_name = access_token_file_name
     cli.cmdloop()

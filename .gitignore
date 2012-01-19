@@ -2,3 +2,4 @@
 *.pyc
 tests/*
 access.py
+access_token.json
