@@ -49,7 +49,9 @@ class BaseGeeklistApi(object):
             secret=consumer_info['secret']
         )
         if token:
-            oauth_token = oauth.Token(token['oauth_token'], token['oauth_token_secret'])
+            oauth_token = oauth.Token(
+                token['oauth_token'],
+                token['oauth_token_secret'])
         else:
             oauth_token = None
         self.client = oauth.Client(self.consumer, token=oauth_token)
