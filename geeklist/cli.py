@@ -18,6 +18,7 @@ except:
 
 class GeekCli(cmd.Cmd):
     prompt = 'geek>'
+    page_count = 10
 
     def do_whoami(self, line):
         """
@@ -36,7 +37,7 @@ class GeekCli(cmd.Cmd):
         self.type = 'info'
         self.result = self.api.user_info(username=name)
 
-    def __list_user_activities(self, line):
+    def _list_user_activities(self, line):
         line_tokens = line.split()
         self.name = line_tokens[0] if line_tokens else None
         self.filter_type = line_tokens[1] if line_tokens and \
@@ -61,11 +62,18 @@ class GeekCli(cmd.Cmd):
     def do_list(self, line):
         """
             list [activities\cards|micros|followers|following] [name]
+            Return the list of objects for a given [name]. If no name is
+            provided Then it will return the list for the current authenticated user.
+
+            After this command. You can use :
+                next : to fetch the next page of result.
+                show [attr] : to list an attribute.
+                get [index] : to retrieve a specific object.
         """
         line_tokens = line.split()
         self.type = line_tokens[0]
         if self.type == 'activities':
-            return self.__list_user_activities(line.replace('activities', ''))
+            return self._list_user_activities(line.replace('activities', ''))
         self.name = line_tokens[1] if len(line_tokens) > 1 else None
         self.page = 1
 
@@ -76,11 +84,20 @@ class GeekCli(cmd.Cmd):
             'following': self.api.list_following,
             }
 
-        result = list_function[self.type](self.name)
+        function = list_function[self.type]
+        result = function(self.name,self.page,self.page_count)
         self.count = result['total_%s' % self.type]
         self.result = result[self.type]
 
     def do_fetch(self,line):
+        """
+            fetch [card|micro] id OR
+            fetch [last|first|index] OR
+            fetch id
+
+            This will fetch a card or micro information given its id or index in the previous results command
+
+        """
         fetch_functions = {
             'card':self.api.card,
             'cards':self.api.card,
@@ -116,6 +133,11 @@ class GeekCli(cmd.Cmd):
         self.result = function(id)
 
     def do_show(self, attr):
+        """
+            show attribute
+            If attribute == 'count' Then show the total of object created
+            Else This will print the attribute for each object return from the last command
+        """
         self.skip_print = True
         if attr == 'count':
             print self.count
@@ -127,7 +149,9 @@ class GeekCli(cmd.Cmd):
 
     def do_get(self, index):
         """
-
+            get index
+            Retrieve the object at position [index].
+            Note: first and last are valid arguments
         """
         if index == 'last':
             index = -1
@@ -174,6 +198,11 @@ class GeekCli(cmd.Cmd):
     complete_reply = complete_create
 
     def do_create(self, line):
+        """
+            create [card|micro] text...
+            This will create a card or a micro. The rest of the line will be as
+            the text of the created object
+        """
         line_tokens = line.split(' ')
         type = line_tokens[0]
         text = ' '.join(line_tokens[1:])
@@ -186,6 +215,10 @@ class GeekCli(cmd.Cmd):
         self.type = type
 
     def do_h5(self, line):
+        """
+            h5 [card|micro] [id]
+            This will send an h5 for the object
+        """
         line_tokens = line.split(' ')
         type = line_tokens[0]
         object_id = line_tokens[1]
@@ -199,6 +232,11 @@ class GeekCli(cmd.Cmd):
             self.result = self.api.high_five_micro(object_id)
 
     def do_reply(self, line):
+        """
+            reply [card|micro] id text...
+            Create a micro in reply to a card or micro with the rest of the
+            line as the text
+        """
         line_tokens = line.split(' ')
         type = line_tokens[0]
         object_id = line_tokens[1]
@@ -214,10 +252,18 @@ class GeekCli(cmd.Cmd):
         self.type = type
 
     def do_set_url(self, url):
+        """
+            set_url url
+            Change the base url
+        """
         BaseGeeklistApi.BASE_URL = url
         self.result = "url is now %s" % BaseGeeklistApi.BASE_URL
 
-    def do_next(self, count):
+    def do_next(self, ignore):
+        """
+            next
+            This will fetch the next page of elements
+        """
         if self.type not in ['followers',
                              'following',
                              'cards',
@@ -226,10 +272,7 @@ class GeekCli(cmd.Cmd):
                              'stream']:
             self.result = "You must call list before calling next"
             return
-        if count:
-            count = count
-        else:
-            count = 10
+
         self.page += 1
 
         if self.type == 'activities':
@@ -237,13 +280,13 @@ class GeekCli(cmd.Cmd):
                 username=self.name,
                 filter_type=self.filter_type,
                 page=self.page,
-                count=count)
+                count=self.page_count)
             return
         elif self.type == 'stream':
             self.result = self.api.list_all_activity(
                 filter_type=self.filter_type,
                 page=self.page,
-                count=count)
+                count=self.page_count)
             return
 
         list_functions = {
@@ -254,7 +297,7 @@ class GeekCli(cmd.Cmd):
             }
 
         function = list_functions[self.type]
-        result = function(self.name, page=self.page, count=count)
+        result = function(self.name, page=self.page, count=self.page_count)
         self.count = result['total_%s' % self.type]
         self.result = result[self.type]
 
@@ -275,13 +318,26 @@ class GeekCli(cmd.Cmd):
         self.result = self.api.unfollow(user_id=user['id'])
 
     def do_stream(self, line):
+        """
+            stream [filter]
+            Return the activity stream of geekli.st filtered by [filter]
+        """
         line_tokens = line.split(' ')
         filter_type = line_tokens[0] if line_tokens else None
         self.type = 'stream'
         self.name = None
         self.page = 1
-        self.result = self.api.list_all_activity(filter_type=filter_type)
+        self.result = self.api.list_all_activity(filter_type=filter_type,
+            page=self.page,
+            count=self.page_count)
         self.count = len(self.result)
+
+    def do_page_count(self,count):
+        """
+            page_count number
+            Set the number of results per page
+        """
+        self.page_count = count
 
     def do_quit(self, *args):
         self.skip_print = True
