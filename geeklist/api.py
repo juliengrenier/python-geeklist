@@ -38,13 +38,18 @@ class BaseGeeklistApi(object):
                 }
             token : If None you must get an request_token and an access token
                     before accessing other API methods.
+                    This is a dictionary :
+                    {
+                        'oauth_token':TOKEN
+                        'oauth_token_secret':TOKEN_SECRET
+                    }
         """
         self.consumer = oauth.Consumer(
             key=consumer_info['key'],
             secret=consumer_info['secret']
         )
         if token:
-            oauth_token = oauth.Token(token['key'], token['secret'])
+            oauth_token = oauth.Token(token['oauth_token'], token['oauth_token_secret'])
         else:
             oauth_token = None
         self.client = oauth.Client(self.consumer, token=oauth_token)

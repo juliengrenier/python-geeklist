@@ -160,10 +160,7 @@ class GeekCli(cmd.Cmd):
           You need to provide the verifier code shown on their website
         """
         self.result = self.oauth_api.access_token(self.result, line)
-        access_token = {
-            'key':self.result['oauth_token'],
-            'secret':self.result['oauth_token_secret']
-        }
+        access_token = self.result
         json_file = open(self.access_token_file_name, mode='w')
         json.dump(access_token,json_file)
         json_file.close()
