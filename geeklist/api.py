@@ -1,4 +1,5 @@
 import oauth2 as oauth
+import urllib
 import json
 import urlparse
 
@@ -60,7 +61,7 @@ class BaseGeeklistApi(object):
         if url.startswith('/'):
             url = self._build_url(url)
 
-        body_string = '&'.join(['%s=%s' % (key,body[key]) for key in body])
+        body_string = urllib.urlencode(body)
 
         (resp, content) = self.client.request(url,
             method, body=body_string)
