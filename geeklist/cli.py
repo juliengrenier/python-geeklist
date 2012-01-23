@@ -2,7 +2,10 @@
 import cmd
 import json
 
-from api import BaseGeeklistApi, GeekListUserApi, GeekListOauthApi, GeeklistProblem
+from api import (BaseGeeklistApi,
+                 GeekListUserApi,
+                 GeekListOauthApi,
+                 GeeklistProblem)
 
 try:
     from access import consumer_info
@@ -11,6 +14,7 @@ except:
         'key':'YOUR_CONSUMER_KEY',
         'secret': 'YOUR_CONSUMER_SECRET'
     }
+
 
 class GeekCli(cmd.Cmd):
     prompt = 'geek>'
@@ -42,12 +46,11 @@ class GeekCli(cmd.Cmd):
             filter_type=self.filter_type)
         self.count = len(self.result)
 
-
     def __autocomplete(self,list,text):
         if not text:
             completions = list
         else:
-            completions = [ f for f in list if f.startswith(text)]
+            completions = [f for f in list if f.startswith(text)]
 
         return completions
 
@@ -144,15 +147,17 @@ class GeekCli(cmd.Cmd):
         self.oauth_api = GeekListOauthApi(consumer_info=consumer_info)
         request_token = self.oauth_api.request_token(type='oob')
         import webbrowser
-        webbrowser.open('http://sandbox.geekli.st/oauth/authorize?oauth_token=%s' % request_token['oauth_token'])
+        oauth_token = request_token['oauth_token']
+        webbrowser.open(self.authorize_url + '?oauth_token=%s' % oauth_token)
         self.result = request_token
-        print 'Once you got the verifier code from geekli.st. Call verify [code]'
-
+        print 'Once you got the verifier code from geekli.st. ' \
+              'Call verify [code]'
 
     def do_verify(self, line):
         """
-            verify [code]
-            This will fetch an access code after you authenticated on geekli.st. You need to provide the verifier code shown on their website
+          verify [code]
+          This will fetch an access code after you authenticated on geekli.st.
+          You need to provide the verifier code shown on their website
         """
         self.result = self.oauth_api.access_token(self.result, line)
         access_token = {
@@ -162,8 +167,9 @@ class GeekCli(cmd.Cmd):
         json_file = open(self.access_token_file_name, mode='w')
         json.dump(access_token,json_file)
         json_file.close()
-        self.api = GeekListUserApi(consumer_info=consumer_info, token=access_token)
-
+        self.api = GeekListUserApi(
+            consumer_info=consumer_info,
+            token=access_token)
 
     def complete_create(self, text, line, begidx, endidx):
         return self.__autocomplete(list=['card', 'micro'],text=text)
@@ -284,7 +290,7 @@ class GeekCli(cmd.Cmd):
         self.skip_print = True
         return True
 
-    do_exit=do_quit
+    do_exit = do_quit
 
     def do_EOF(self, line):
         """Exit"""
@@ -313,15 +319,17 @@ class GeekCli(cmd.Cmd):
 
 if __name__ == '__main__':
     BaseGeeklistApi.BASE_URL = 'http://sandbox-api.geekli.st/v1'
+    authorize_url = 'http://sandbox.geekli.st/oauth/authorize'
     access_token_file_name = 'access.token.json'
     try:
         access_token_file = open(access_token_file_name,mode='r')
         access_token = json.load(access_token_file)
         api = GeekListUserApi(consumer_info=consumer_info, token=access_token)
-    except :
+    except:
         api = None
 
     cli = GeekCli()
     cli.api = api
     cli.access_token_file_name = access_token_file_name
+    cli.authorize_url = authorize_url
     cli.cmdloop()
