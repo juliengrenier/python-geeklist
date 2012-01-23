@@ -167,14 +167,14 @@ class GeekListUserApi(BaseGeeklistApi):
             count=count)
         return self._request(url=url)
 
-    def cards(self, username=None, page=1, count=10):
+    def list_cards(self, username=None, page=1, count=10):
         url = self._build_list_url(list_type='cards',
             username=username,
             page=page,
             count=count)
         return self._request(url=url)
 
-    def micros(self, username=None, page=1, count=10):
+    def list_micros(self, username=None, page=1, count=10):
         url = self._build_list_url(list_type='micros',
             username=username,
             page=page,

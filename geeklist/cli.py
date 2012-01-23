@@ -70,8 +70,8 @@ class GeekCli(cmd.Cmd):
         self.page = 1
 
         list_function = {
-            'cards': self.api.cards,
-            'micros': self.api.micros,
+            'cards': self.api.list_cards,
+            'micros': self.api.list_micros,
             'followers': self.api.list_followers,
             'following': self.api.list_following,
             }
@@ -247,8 +247,8 @@ class GeekCli(cmd.Cmd):
             return
 
         list_functions = {
-            'cards': self.api.cards,
-            'micros': self.api.micros,
+            'cards': self.api.list_cards,
+            'micros': self.api.list_micros,
             'followers': self.api.list_followers,
             'following': self.api.list_following,
             }
