@@ -60,7 +60,8 @@ class BaseGeeklistApi(object):
         if resp.status == 200:
             if decode:
                 json_response = json.loads(content)
-                if json_response.get('status',None) == 'ok' and 'data' in json_response:
+                if json_response.get('status',None) == 'ok' and \
+                   'data' in json_response:
                     return json_response['data']
                 else:
                     return json_response
@@ -75,6 +76,7 @@ class BaseGeeklistApi(object):
 
     def _build_url(self,path):
         return BaseGeeklistApi.BASE_URL + path
+
 
 class GeekListOauthApi(BaseGeeklistApi):
     APP_TYPES = ['web', 'oob']
@@ -95,7 +97,9 @@ class GeekListOauthApi(BaseGeeklistApi):
         request_token_url = '/oauth/request_token'
 
         if type == 'oob':
-            content = self._request(url='%s?oauth_callback=oob' % request_token_url, decode=False)
+            content = self._request(
+                url='%s?oauth_callback=oob' % request_token_url,
+                decode=False)
         else:
             content = self._request(url=request_token_url, decode=False)
 
@@ -126,18 +130,19 @@ class GeekListOauthApi(BaseGeeklistApi):
 class GeekListUserApi(BaseGeeklistApi):
     def __init__(self, consumer_info, token):
         if not token:
-            raise ValueError("A valid token must use to access the geeklist user api")
+            raise ValueError("A valid token must use to "
+                             "access the geeklist user api")
         super(GeekListUserApi, self).__init__(
             consumer_info=consumer_info,
             token=token)
 
-    def _build_list_url(self, suffix, username, page, count):
+    def _build_list_url(self, list_type, username, page, count):
         if username:
             url = '/users/%s' % username
         else:
             url = '/user'
 
-        url = '%s/%s' % (url, suffix)
+        url = '%s/%s' % (url, list_type)
 
         if page and count:
             url += '?page=%s&count=%s' % (page, count)
@@ -149,23 +154,38 @@ class GeekListUserApi(BaseGeeklistApi):
         return url
 
     def user_info(self, username=None, page=1, count=10):
-        url = self._build_list_url('', username=username, page=page, count=count)
+        url = self._build_list_url(list_type='',
+            username=username,
+            page=page,
+            count=count)
         return self._request(url=url)
 
     def cards(self, username=None, page=1, count=10):
-        url = self._build_list_url('cards', username=username, page=page, count=count)
+        url = self._build_list_url(list_type='cards',
+            username=username,
+            page=page,
+            count=count)
         return self._request(url=url)
 
     def micros(self, username=None, page=1, count=10):
-        url = self._build_list_url('micros', username=username, page=page, count=count)
+        url = self._build_list_url(list_type='micros',
+            username=username,
+            page=page,
+            count=count)
         return self._request(url=url)
 
     def list_followers(self, username, page=1, count=10):
-        url = self._build_list_url('followers', username=username, page=page, count=count)
+        url = self._build_list_url(list_type='followers',
+            username=username,
+            page=page,
+            count=count)
         return self._request(url=url)
 
     def list_following(self, username, page=1, count=10):
-        url = self._build_list_url('following', username=username, page=page, count=count)
+        url = self._build_list_url(list_type='following',
+            username=username,
+            page=page,
+            count=count)
         return self._request(url=url)
 
     def card(self, id):
@@ -174,7 +194,9 @@ class GeekListUserApi(BaseGeeklistApi):
 
     def create_card(self, headline):
         url = '/cards'
-        return self._request(url=url, method='POST', body={'headline': headline})
+        return self._request(url=url,
+            method='POST',
+            body={'headline': headline})
 
     def micro(self, id):
         url = '/micros/%s' % id
@@ -182,7 +204,9 @@ class GeekListUserApi(BaseGeeklistApi):
 
     def create_micro(self, status):
         url = '/micros'
-        return self._request(url=url, method='POST', body={'status': status})
+        return self._request(url=url,
+            method='POST',
+            body={'status': status})
 
     def reply_to_micro(self, micro_id, status):
         url = '/micros'
@@ -213,12 +237,19 @@ class GeekListUserApi(BaseGeeklistApi):
             'user': user_id
         })
 
-    def list_user_activities(self, username=None, filter_type=None, page=1, count=10):
+    def list_user_activities(self,
+                             username=None,
+                             filter_type=None,
+                             page=1,
+                             count=10):
 
         if filter_type and filter_type not in BaseGeeklistApi.FILTER_TYPES:
             raise ValueError("Wrong filter")
 
-        url = self._build_list_url('activity', username=username, page=page, count=count)
+        url = self._build_list_url(list_type='activity',
+            username=username,
+            page=page,
+            count=count)
 
         if filter_type:
             url += '&card=%s' % filter_type
