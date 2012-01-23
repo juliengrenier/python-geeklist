@@ -19,6 +19,7 @@ except:
 class GeekCli(cmd.Cmd):
     prompt = 'geek>'
     page_count = 10
+    gklist_objects = ['card', 'micro']
 
     def do_whoami(self, line):
         """
@@ -52,12 +53,17 @@ class GeekCli(cmd.Cmd):
             completions = list
         else:
             completions = [f for f in list if f.startswith(text)]
-
         return completions
 
     def complete_list(self, text, line, begidx, endidx):
         list_types = ['activities','cards','micros','followers','following']
         return self.__autocomplete(list=list_types,text=text)
+
+    def _call_list_function(self):
+        function = getattr(self.api,'list_'+self.type)
+        result = function(self.name,self.page,self.page_count)
+        self.count = result['total_%s' % self.type]
+        self.result = result[self.type]
 
     def do_list(self, line):
         """
@@ -76,26 +82,13 @@ class GeekCli(cmd.Cmd):
             return self._list_user_activities(line.replace('activities', ''))
         self.name = line_tokens[1] if len(line_tokens) > 1 else None
         self.page = 1
-
-        list_function = {
-            'cards': self.api.list_cards,
-            'micros': self.api.list_micros,
-            'followers': self.api.list_followers,
-            'following': self.api.list_following,
-            }
-
-        function = list_function[self.type]
-        result = function(self.name,self.page,self.page_count)
-        self.count = result['total_%s' % self.type]
-        self.result = result[self.type]
+        self._call_list_function()
 
     def do_fetch(self,line):
         """
-            fetch [card|micro] id OR
-            fetch [last|first|index] OR
-            fetch id
+            fetch [card|micro] id
 
-            This will fetch a card or micro information given its id or index in the previous results command
+            This will fetch a card or micro information given its id.
 
         """
         fetch_functions = {
@@ -109,25 +102,14 @@ class GeekCli(cmd.Cmd):
             type = line_tokens[0]
             arg = line_tokens[1]
 
-            if type not in ['card', 'micro']:
+            if type not in self.gklist_objects:
                 self.result = "valid fetch objects are card and micro"
                 return
         else:
             type = self.type
             arg = line_tokens[0]
 
-        id = None
-        if arg == 'last':
-            id = self.result[-1]['id']
-        elif arg == 'first':
-            id = self.result[0]['id']
-
-        if not id:
-            try:
-                index = int(arg)
-                id = self.result[index]['id']
-            except ValueError:
-                id = arg
+        id = arg
 
         function = fetch_functions[type]
         self.result = function(id)
@@ -193,7 +175,7 @@ class GeekCli(cmd.Cmd):
             token=access_token)
 
     def complete_create(self, text, line, begidx, endidx):
-        return self.__autocomplete(list=['card', 'micro'],text=text)
+        return self.__autocomplete(list=self.gklist_objects,text=text)
     complete_h5 = complete_create
     complete_reply = complete_create
 
@@ -206,7 +188,7 @@ class GeekCli(cmd.Cmd):
         line_tokens = line.split(' ')
         type = line_tokens[0]
         text = ' '.join(line_tokens[1:])
-        if type not in ['card', 'micro']:
+        if type not in self.gklist_objects:
             print "valid creation object are card and micro"
         if type == 'card':
             self.result = self.api.create_card(headline=text)
@@ -222,7 +204,7 @@ class GeekCli(cmd.Cmd):
         line_tokens = line.split(' ')
         type = line_tokens[0]
         object_id = line_tokens[1]
-        if type not in ['card', 'micro']:
+        if type not in self.gklist_objects:
             self.result = "only card and micro can be highfived"
 
         if type == 'card':
@@ -241,7 +223,7 @@ class GeekCli(cmd.Cmd):
         type = line_tokens[0]
         object_id = line_tokens[1]
         text = line_tokens[2:]
-        if type not in ['card', 'micro']:
+        if type not in self.gklist_objects:
             self.result = "valid reply objects are card and micro"
             return
 
@@ -289,17 +271,7 @@ class GeekCli(cmd.Cmd):
                 count=self.page_count)
             return
 
-        list_functions = {
-            'cards': self.api.list_cards,
-            'micros': self.api.list_micros,
-            'followers': self.api.list_followers,
-            'following': self.api.list_following,
-            }
-
-        function = list_functions[self.type]
-        result = function(self.name, page=self.page, count=self.page_count)
-        self.count = result['total_%s' % self.type]
-        self.result = result[self.type]
+        self._call_list_function()
 
     def do_follow(self, name):
         """
@@ -323,11 +295,11 @@ class GeekCli(cmd.Cmd):
             Return the activity stream of geekli.st filtered by [filter]
         """
         line_tokens = line.split(' ')
-        filter_type = line_tokens[0] if line_tokens else None
+        self.filter_type = line_tokens[0] if line_tokens else None
         self.type = 'stream'
         self.name = None
         self.page = 1
-        self.result = self.api.list_all_activity(filter_type=filter_type,
+        self.result = self.api.list_all_activity(filter_type=self.filter_type,
             page=self.page,
             count=self.page_count)
         self.count = len(self.result)
@@ -351,6 +323,11 @@ class GeekCli(cmd.Cmd):
         return True
 
     def postcmd(self, stop, line):
+        """
+            Executed after each command. This will usually print
+            the result of the command unless the skip_print variable have been set to True
+
+        """
         if getattr(self, 'skip_print', False):
             self.skip_print = False
         elif not line.startswith('help'):
@@ -359,13 +336,20 @@ class GeekCli(cmd.Cmd):
         return cmd.Cmd.postcmd(self, stop, line)
 
     def onecmd(self, s):
+        """
+            Wrap each command to avoid quitting the loop because of an API error.
+        """
         try:
             return cmd.Cmd.onecmd(self, s)
         except GeeklistProblem as problem:
             print problem.response
 
     def preloop(self):
-        if not api:
+        """
+            Make sure we have access to geekli.st.
+            If not this will call authenticate for us.
+        """
+        if not self.api:
             return self.do_authenticate('')
         return cmd.Cmd.preloop(self)
 
