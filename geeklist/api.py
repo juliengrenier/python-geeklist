@@ -236,6 +236,17 @@ class GeekListUserApi(BaseGeeklistApi):
             'in-reply-to': card_id
         })
 
+    def create_link(self, link_url, title, description=None, communities=None, category='My links'):
+        url = '/links'
+        body={
+            'url': link_url,
+            'title': title,
+        }
+        if description: body.update(description=description)
+        if communities: body.update(communities=communities)
+        if category: body.update(category=category)
+        return self._request(url=url, method='POST', body=body)
+
     def follow(self, user_id):
         url = '/follow'
         return self._request(url=url, method='POST', body={

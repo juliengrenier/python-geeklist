@@ -19,7 +19,7 @@ except:
 class GeekCli(cmd.Cmd):
     prompt = 'geek>'
     page_count = 10
-    gklist_objects = ['card', 'micro']
+    gklist_objects = ['card', 'micro', 'link']
 
     def do_whoami(self, line):
         """
@@ -181,19 +181,25 @@ class GeekCli(cmd.Cmd):
 
     def do_create(self, line):
         """
-            create [card|micro] text...
-            This will create a card or a micro. The rest of the line will be as
-            the text of the created object
-        """
+            create {0} text...
+            This will create a card or a micro. The rest of the line will be the arguments of created object
+            examples:
+                create card headline
+                create micro status
+                create link url|title|description|communities|category #only url and title are required, communities are comma-separated
+        """.format(self.gklist_objects)
         line_tokens = line.split(' ')
         type = line_tokens[0]
         text = ' '.join(line_tokens[1:])
         if type not in self.gklist_objects:
             print "valid creation object are card and micro"
+
         if type == 'card':
             self.result = self.api.create_card(headline=text)
         elif type == 'micro':
             self.result = self.api.create_micro(status=text)
+        elif type == 'link':
+            self.result = self.api.create_link(*text.split("|"))
         self.type = type
 
     def do_h5(self, line):
