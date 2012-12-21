@@ -355,8 +355,7 @@ class GeekCli(cmd.Cmd):
 
 
 if __name__ == '__main__':
-    BaseGeeklistApi.BASE_URL = 'http://sandbox-api.geekli.st/v1'
-    authorize_url = 'http://sandbox.geekli.st/oauth/authorize'
+    authorize_url = 'http://geekli.st/oauth/authorize'
     access_token_file_name = 'access.token.json'
     try:
         access_token_file = open(access_token_file_name,mode='r')

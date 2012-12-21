@@ -168,33 +168,37 @@ class GeekListUserApi(BaseGeeklistApi):
             count=count)
         return self._request(url=url)
 
-    def list_cards(self, username=None, page=1, count=10):
-        url = self._build_list_url(list_type='cards',
+    def _list_items(self, items='', username=None, page=1, count=10):
+        url = self._build_list_url(list_type=items,
             username=username,
             page=page,
             count=count)
         return self._request(url=url)
+
+    def list_cards(self, username=None, page=1, count=10):
+        return self._list_items('cards', username=username,
+                page=page,
+                count=count)
 
     def list_micros(self, username=None, page=1, count=10):
-        url = self._build_list_url(list_type='micros',
-            username=username,
-            page=page,
-            count=count)
-        return self._request(url=url)
+        return self._list_items('micros', username=username,
+                page=page,
+                count=count)
 
     def list_followers(self, username, page=1, count=10):
-        url = self._build_list_url(list_type='followers',
-            username=username,
-            page=page,
-            count=count)
-        return self._request(url=url)
+        return self._list_items('followers', username=username,
+                page=page,
+                count=count)
 
     def list_following(self, username, page=1, count=10):
-        url = self._build_list_url(list_type='following',
-            username=username,
-            page=page,
-            count=count)
-        return self._request(url=url)
+        return self._list_items('following', username=username,
+                page=page,
+                count=count)
+
+    def list_links(self, username, page=1, count=10):
+        return self._list_items('links', username=username,
+                page=page,
+                count=count)
 
     def card(self, id):
         url = '/cards/%s' % id
