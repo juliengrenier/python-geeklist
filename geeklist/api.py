@@ -200,6 +200,12 @@ class GeekListUserApi(BaseGeeklistApi):
                 page=page,
                 count=count)
 
+    def list_populars(self, communities, page=1, count=10):
+        url='/links?page={0}&count={1}'.format(page, count)
+        if communities:
+            url += "&communities="+communities
+        return self._request(url=url)
+
     def card(self, id):
         url = '/cards/%s' % id
         return self._request(url=url)

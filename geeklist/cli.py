@@ -20,6 +20,7 @@ class GeekCli(cmd.Cmd):
     prompt = 'geek>'
     page_count = 10
     gklist_objects = ['card', 'micro', 'link']
+    listable_objects = ['followers', 'following', 'cards', 'micros', 'activities', 'links', 'stream', 'populars']
 
     def do_whoami(self, line):
         """
@@ -56,18 +57,22 @@ class GeekCli(cmd.Cmd):
         return completions
 
     def complete_list(self, text, line, begidx, endidx):
-        list_types = ['activities','cards','micros','followers','following']
+        list_types = self.listable_objects
         return self.__autocomplete(list=list_types,text=text)
 
     def _call_list_function(self):
         function = getattr(self.api,'list_'+self.type)
         result = function(self.name,self.page,self.page_count)
-        self.count = result['total_%s' % self.type]
-        self.result = result[self.type]
+        if self.type == 'populars':
+            self.result = result['links']
+            self.count = len(self.result)
+        else:
+            self.result = result[self.type]
+            self.count = result['total_%s' % self.type]
 
     def do_list(self, line):
         """
-            list [activities\cards|micros|followers|following] [name]
+            list [activities|cards|micros|followers|following|populars|links] [name]
             Return the list of objects for a given [name]. If no name is
             provided Then it will return the list for the current authenticated user.
 
@@ -252,12 +257,7 @@ class GeekCli(cmd.Cmd):
             next
             This will fetch the next page of elements
         """
-        if self.type not in ['followers',
-                             'following',
-                             'cards',
-                             'micros',
-                             'activities',
-                             'stream']:
+        if self.type not in self.listable_objects:
             self.result = "You must call list before calling next"
             return
 
